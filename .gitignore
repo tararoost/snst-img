@@ -1,4 +1,5 @@
-*.kate-swp
+.*.kate-swp
+.swp.*
 # ---> Python
 # Byte-compiled / optimized / DLL files
 __pycache__/
