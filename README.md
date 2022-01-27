@@ -15,3 +15,4 @@ Note: Install Tensorflow and PyTorch libraries built for your respective hardwar
 * `tensorflow-hub>=0.12.0`
 * `torch>=1.10.1`
 * `pixellib>=0.7.1`
+* PointRend [model](https://github.com/ayoolaolafenwa/PixelLib/releases/download/0.2.0/pointrend_resnet50.pkl) for image segmentation
