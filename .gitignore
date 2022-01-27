@@ -1,5 +1,10 @@
 .*.kate-swp
 .swp.*
+tmp/
+fast_nst/
+*.tar.gz
+*.pkl
+
 # ---> Python
 # Byte-compiled / optimized / DLL files
 __pycache__/

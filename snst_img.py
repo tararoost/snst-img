@@ -1,41 +1,70 @@
 import argparse
-#import nst
-#import seg_blend as sb
-import sys
+import cv2 as cv
+import numpy as np
+import os
 import time
 
-def snst(img_a_path, img_b_path, style_path, model_path, output_path, epochs, steps_per_epoch, blend_pos):
-    segmented_a_path = "tmp/segmented_a.jpg"
-    segmented_b_path = "tmp/segmented_b.jpg"
+import seg_blend
+import fast_nst
+
+def snst(img_path, style_path, model_path, model_fast_nst, output_path):
+    ld = os.path.dirname(__file__)
+    md = os.path.join(ld, "tmp")
+    os.makedirs(md, exist_ok = True)
+
+    # temporary working files
+    segmented_obj_path = "tmp/segmented_obj.jpg"
+    style_transfered_path = "tmp/style_transfered.jpg"
 
     start = time.time()
-    # extract fg from img_a
-    sb.segment(img_a_path, segmented_a_path, model_path)
-    nst.nst(img_a_path, style_path, epochs, steps_per_epoch)
 
-    # extract bg from img_b
-    # perform nst on extracted img_a fg
-    nst.opt_performer() 
-    #blend
+    segmented_obj = seg_blend.segment(img_path, model_path)
+    cv.imwrite(segmented_obj_path, segmented_obj[1])
+
+    style_transfered_obj = fast_nst.fast_nst(segmented_obj_path, style_path, model_fast_nst, 256)
+
+    _st = np.array(style_transfered_obj)
+    _st = cv.resize(_st, (segmented_obj[1].shape[1], segmented_obj[1].shape[0]), interpolation = cv.INTER_AREA)
+    seg_arr = segmented_obj[1][:,:,:3]
+    mask = cv.cvtColor((_st * seg_arr), cv.COLOR_BGRA2GRAY)
+    _, mask = cv.threshold(mask, 1, 255, cv.THRESH_BINARY)
+    res = cv.bitwise_and(_st, _st, mask=mask)
+    cv.imwrite(style_transfered_path, res[:,:,::-1])
+
+    segmented_bg = seg_blend.segment_bg(img_path, model_path)
+
+    seg_blend.blend(style_transfered_path, img_path, output_path,
+                    (segmented_bg[2][1], segmented_bg[2][0]))
+
     end = time.time()
-    print("Done. Total run time: {:.1f} s / {:.3f} min" .format(end-start, (end-start) / 60))
+    print("Done. Total run time: {:.1f} s" .format(end-start))
     
 
 def main():
     version = "1.0"
     p = argparse.ArgumentParser(prog="snst-img.py", description="snst-img: selective neural style transfer for images")
-    p.add_argument("-a", "--img-a", type=str, required=True, metavar="", help="foreground image path")
-    p.add_argument("-b", "--img-b", type=str, required=True, metavar="", help="background image path")
-    p.add_argument("-s", "--style", type=str, required=True,  metavar="", help="style image path")
-    p.add_argument("-o", "--output", type=str, metavar="", default="output.png", help="output path (default: ./output.jpg)")
-    p.add_argument("-m", "--model", type=str, required=True, metavar="", help="segmentation model path (default: ./model.pkl)")
-    p.add_argument("--epochs", type=int, default=10, metavar="", help="number of epochs for NST optimization (default: 10)")
-    p.add_argument("--steps-per-epoch", type=int, default=10, metavar="", help="number of steps per epoch for NST optimization (default: 10)")
-    p.add_argument("--blend-pos", metavar="", help="blend position of style-transfered img_a in img_b (default: center of img_b)")
-    p.add_argument("-v", "--version", action="version", version="%(prog)s "+version,help="print program version and exit")
+
+    p.add_argument("-i", "--img", type=str, required=True, metavar="",
+                   help="image path")
+
+    p.add_argument("-s", "--style", type=str, required=True,  metavar="",
+                   help="style image path")
+
+    p.add_argument("-o", "--output", type=str, metavar="", default="output.png",
+                   help="output path (default: ./output.png)")
+
+    p.add_argument("-m", "--model", type=str, required=True, metavar="", default="model.pkl",
+                   help="segmentation model path (default: ./model.pkl)")
+
+    p.add_argument("-m_fnst", "--model-fast-nst", type=str, required=False, metavar="",
+                   help="arbitrary image stylization tensorflow hub module archive path (if none, module will be downloaded)")
+
+    p.add_argument("-v", "--version", action="version", version="%(prog)s "+version,
+                   help="print program version and exit")
+
     args = p.parse_args()
 
-    #snst(args.img_a, args.img_b, args.style, args.output, args.epochs, args.steps_per_epoch, args.blend_pos)
+    snst(args.img, args.style, args.model, args.model_fast_nst, args.output)
     
 if __name__ == "__main__":
     main()
