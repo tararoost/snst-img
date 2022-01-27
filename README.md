@@ -16,3 +16,4 @@ Note: Install Tensorflow and PyTorch libraries built for your respective hardwar
 * `torch>=1.10.1`
 * `pixellib>=0.7.1`
 * PointRend [model](https://github.com/ayoolaolafenwa/PixelLib/releases/download/0.2.0/pointrend_resnet50.pkl) for image segmentation
+* (Optional) Fast arbitrary image style transfer TensorFlow hub [model](https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2?tf-hub-format=compressed)
